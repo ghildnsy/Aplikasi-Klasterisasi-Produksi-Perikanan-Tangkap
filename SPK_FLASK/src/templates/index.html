@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clustering K-Medoids - Produksi Perikanan</title>
+
+    <!-- bootstrap cdn -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
+    />
+
+    <!-- Google Fonts: Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="mt-3 container">
+      <!-- top bar dashboard and button download excel -->
+      <div class="d-flex align-items-center justify-content-between">
+        <!-- top bar dashboard -->
+        <div>
+          <p class="text-secondary fw-semibold" style="font-size: 14px">
+            OVERVIEW
+          </p>
+          <h5 class="text-dark">Dashboard Clustering - Produksi Perikanan</h5>
+          <p class="text-dark">
+            Hasil clustering menggunakan metode K-Medoids pada data produksi
+            perikanan.
+          </p>
+        </div>
+      </div>
+      <!-- line  -->
+      <hr class="my-4" style="border-top: 2px solid #575757" />
+
+      <!-- data tables fish and region type -->
+      <section id="data-tables-fish-and-region-type">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <h5 class="text-dark text-capitalize">
+              tabel jenis ikan dan pendapatan
+            </h5>
+            <p class="text-secondary" style="font-size: 14px">
+              Data ini berisi informasi tentang jenis ikan dan pendapatan per
+              daerah
+            </p>
+          </div>
+
+          <div>
+            <button onclick="showCluster()" class="btn btn-primary">
+              Cluster Data
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="table-responsive fish-column rounded table-container"
+          style="max-height: 420px; font-size: 12px"
+        >
+          {{ original_data|safe }}
+        </div>
+      </section>
+
+      <!-- data table clustering -->
+      <section id="table-clustering" class="mt-5 d-none">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <h5 class="text-dark text-capitalize">
+              tabel hasil clustering - Pengujian ke- {{ best_index + 1 }}
+            </h5>
+            <p class="text-secondary" style="font-size: 14px">
+              tabel ini menampilkan informasi tentang jenis ikan dan pendapatan
+              per daerah, <br />
+              serta penambahan satu kolom berisi hasil clustering
+            </p>
+          </div>
+
+          <div>
+            <button onclick="showDetailClustering()" class="btn btn-primary">
+              Lihat Detail Clustering
+            </button>
+
+            <a
+              href="/download"
+              id="btn-download"
+              class="btn btn-success"
+              download
+            >
+              Download Excel
+            </a>
+          </div>
+        </div>
+
+        <div class="row">
+          <div
+            class="col-8 table-responsive fish-column rounded table-container"
+            style="max-height: 420px; font-size: 12px"
+          >
+            {{ clustered_data|safe }}
+          </div>
+
+          <div
+            class="col-4 d-flex flex-column align-items-center justify-content-center"
+          >
+            <h6 class="text-center">Chart Hasil Cluster</h6>
+            <canvas id="clusterChart" class="chart-medium"></canvas>
+          </div>
+        </div>
+
+        <!-- chart pie hasil clustering -->
+      </section>
+
+      <!-- chart diagram cost per pengujian -->
+      <section class="mt-5 d-none" id="detail-custering">
+        <div>
+          <h5 class="text-dark text-capitalize">
+            Detail Medoid & Cost per Pengujian
+          </h5>
+          <p class="text-secondary" style="font-size: 14px">
+            tabel ini menampilkan detail medoid awal dan akhir, cost awal dan
+            akhir, <br />
+            serta jumlah iterasi internal pada setiap pengujian
+          </p>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="table-responsive">
+            <table
+              class="table table-bordered medoid-column"
+              style="font-size: 12px"
+            >
+              <thead>
+                <tr>
+                  <th>Pengujian</th>
+                  <th>Medoid Awal</th>
+                  <th>Cost Awal</th>
+                  <th>Medoid Akhir</th>
+                  <th>Cost Akhir</th>
+                  <th>Iterasi Internal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for medoids in medoid_sets %}
+                <tr style="text-align: center">
+                  <td>{{ loop.index }}</td>
+                  <td style="text-align: left">
+                    {{ init_medoid_sets[loop.index0] | join(', ') }}
+                  </td>
+                  <td>{{ "%.2f"|format(init_costs[loop.index0]) }}</td>
+                  <td style="text-align: left">{{ medoids | join(', ') }}</td>
+                  <td>{{ "%.2f"|format(costs[loop.index0]) }}</td>
+                  <td>{{ iterations[loop.index0] }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div>
+            <canvas id="costChart" class="chart-large mt-3"></canvas>
+            <canvas id="iterationsChart" class="chart-large mt-3"></canvas>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- script -->
+    <script>
+      function showCluster() {
+        var dataClustering = document.getElementById("table-clustering");
+        var button = event.target;
+
+        if (dataClustering.classList.contains("d-none")) {
+          dataClustering.classList.remove("d-none");
+          button.disabled = true;
+          button.innerText = "Clustered";
+        }
+
+      }
+
+        function showDetailClustering() {
+          var detailCustering = document.getElementById("detail-custering");
+           if (detailCustering.classList.contains("d-none")) {
+          detailCustering.classList.remove("d-none");
+
+          button.disabled = true;
+          button.innerText = "Menampilkan Detail Clustering";
+         }
+        }
+
+      window.onload = function () {
+        const clusterCounts = {{ cluster_counts | tojson }};
+        const clusterLabels = { '0': "Rendah", '1': "Sedang", '2': "Tinggi" };
+        const pieLabels = Object.keys(clusterCounts).map(k => clusterLabels[k]);
+        const pieData = Object.values(clusterCounts);
+
+        new Chart(document.getElementById("clusterChart"), {
+          type: 'pie',
+          data: {
+            labels: pieLabels,
+            datasets: [{
+              data: pieData,
+              backgroundColor: ['#ff6384', '#36a2eb', '#ffcd56']
+            }]
+          }
+        });
+
+        const costs = {{ costs | tojson }};
+        new Chart(document.getElementById("costChart"), {
+          type: 'bar',
+          data: {
+            labels: costs.map((_, i) => `Pengujian ${i + 1}`),
+            datasets: [{
+              label: 'Cost per Pengujian',
+              data: costs,
+              backgroundColor: '#4caf50'
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+
+        const iterations = {{ iterations | tojson }};
+        new Chart(document.getElementById("iterationsChart"), {
+          type: 'bar',
+          data: {
+            labels: iterations.map((_, i) => `Pengujian ${i + 1}`),
+            datasets: [{
+              label: 'Jumlah Iterasi K-Medoids Internal',
+              data: iterations,
+              backgroundColor: '#ff6384',
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+
+
+      };
+    </script>
+
+    <!-- cdn bootstrap and chart -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </body>
+
+  <style>
+    /* Background and cinematic style */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      /* fallback bg, biar gak polos */
+      color: #000000;
+      font-family: "Montserrat", sans-serif;
+      margin: 0;
+      padding-bottom: 30px;
+      background: #f9fbfd;
+    }
+
+    table thead th {
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 1;
+    }
+
+    /* Opsional: untuk scroll jika tabel tinggi */
+    .table-container {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .fish-column th:nth-child(1),
+    .fish-column td:nth-child(1) {
+      text-align: left;
+      width: 150px;
+    }
+
+    .medoid-column th:nth-child(2),
+    .medoid-column td:nth-child(2) {
+      text-align: left;
+      width: 150px;
+    }
+
+    .medoid-column th:nth-child(4),
+    .medoid-column td:nth-child(4) {
+      text-align: left;
+      width: 150px;
+    }
+
+    .medoid-column th:nth-child(6),
+    .medoid-column td:nth-child(6) {
+      text-align: left;
+      width: 120px;
+    }
+
+    .chart-large {
+      width: 600px !important;
+      height: 400px !important;
+    }
+
+    .chart-medium {
+      width: 400px !important;
+      height: 400px !important;
+    }
+  </style>
+</html>
