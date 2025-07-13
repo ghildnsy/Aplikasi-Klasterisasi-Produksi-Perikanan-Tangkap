@@ -1,4 +1,4 @@
-# 📊 Aplikasi Web Analisis Klasterisasi Produksi Perikanan (K-Medoids)
+# 📊 Aplikasi Web Analisis Klasterisasi Produksi Perikanan Menggunakan K-Medoids
 
 Aplikasi ini melakukan analisis dan klasterisasi terhadap dataset hasil _Produksi Perikanan Tangkap di Provinsi Jawa Barat_ menggunakan algoritma _K-Medoids_ dan visualisasi berbasis web dengan **Flask**.
 
