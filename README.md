@@ -12,7 +12,7 @@ Aplikasi ini melakukan analisis dan klasterisasi terhadap dataset hasil _Produks
 
 ---
 
-## 🛠️ Cara Instalasi
+## 🛠️ Cara Instalasi Secara Lokal
 
 ## Buka terminal pada vscode
 
